@@ -1035,3 +1035,270 @@ public class CollectionBean
 ```
 
 <br>
+
+## 整合至專案中注意事項 ( 非常重要 )
+
+<br>
+
+例如有一個 `CustomerAction.java`
+
+```java
+    private CustomerService cs = new CustomerServiceImpl();
+	private CustomerAction customer = new Customer();
+	
+	public String list() throws Exception
+	{
+		//1.接收參數
+		String cust_name = ServletActionContext.getRequest().getParameter("cust_name");
+		
+		//2.創建離線查詢對象
+		DetachedCriteria dc = DetachedCriteria.forClass(Customer.class);
+		
+		//3.判斷餐數拼裝條件
+		if(StringUtils.isNotBlank(cust_name))
+		{
+			dc.add(Restrictions.like("cust_name","%"+cust_name+"%"));
+		}
+		
+		//4.調用 Service 將離線對象傳遞
+		List<Customer> list = cs.getAll(dc);
+		
+		//5.將返回的 list 放入 request域，轉發到 list.jsp顯示
+		ServletActionContext.getRequest().setAttribute("list",list);
+		
+		//放到 ActionContext
+		ActionContext.getContext().put("list",list);
+		
+		return "list";
+	}
+	
+	//添加客戶
+	public String add() throws Exception
+	{
+		//1.調用 Service
+		cs.save(customer);
+		
+		//2.重定向到列表 action方法
+		return "toList";
+	}
+	
+	public Customer getModel()
+	{
+		return customer;
+	}
+}
+```
+
+<br>
+
+使用 spring容器
+
+```java
+// private CustomerService cs = new CustomerServiceImpl();
+	private CustomerAction customer = new Customer();
+
+	public String list() throws Exception
+	{
+		// 創建容器
+		ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
+
+		// 獲得 cs (customerService對象)
+		CustomerService cs = (CustomerService) ac.getBean("customerService");
+
+		// -------------------------------------------------------------------------------
+
+		// 1.接收參數
+		String cust_name = ServletActionContext.getRequest().getParameter("cust_name");
+
+		// 2.創建離線查詢對象
+		DetachedCriteria dc = DetachedCriteria.forClass(Customer.class);
+
+		// 3.判斷餐數拼裝條件
+		if (StringUtils.isNotBlank(cust_name))
+		{
+			dc.add(Restrictions.like("cust_name", "%" + cust_name + "%"));
+		}
+
+		// 4.調用 Service 將離線對象傳遞
+		List<Customer> list = cs.getAll(dc);
+
+		// 5.將返回的 list 放入 request域，轉發到 list.jsp顯示
+		ServletActionContext.getRequest().setAttribute("list", list);
+
+		// 放到 ActionContext
+		ActionContext.getContext().put("list", list);
+
+		return "list";
+	}
+
+	// 添加客戶
+	public String add() throws Exception
+	{
+		// 創建容器
+		ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
+
+		// 獲得 cs (customerService對象)
+		CustomerService cs = (CustomerService) ac.getBean("customerService");
+		
+		// -------------------------------------------------------------------------------
+
+		// 1.調用 Service
+		cs.save(customer);
+
+		// 2.重定向到列表 action方法
+		return "toList";
+	}
+
+	public Customer getModel()
+	{
+		return customer;
+	}
+```
+
+<br>
+
+```java
+// 創建容器
+ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
+
+// 獲得 cs (customerService對象)
+CustomerService cs = (CustomerService) ac.getBean("customerService");
+```
+
+	但是這樣的寫法存在問題，應該這樣的項目創建期間只需要一個就可以！！！
+	
+	如果像上面這樣寫法變成每次請求進來就創建一個容器
+	這樣的寫法看似正確但是實際上不能這麼做的！！！
+
+<br>
+	
+	思考：
+		如何確保項目當中只有一個 ApplicationContext容器對象
+
+<br>
+
+	ServletContext:
+	
+		Servlet容器在啟動一個 wepapp時，會為它創建一個 ServletContext對象。
+		每個 webapp 都有 "唯一" 的 ServletContext對象。
+		同一個 webapp的所有 servlet對象 共享一個 ServletContext，
+		這樣 servlet對象可以通過 ServletContext 來訪問容器中的各種資源！！！
+
+<br>
+
+### 管理容器在項目中的生命週期
+
+正確就是使用 `Listener` ( 配置 web.xml )
+
+再加入一個 jar包 `spring-web-4.2.4.RELEASE.jar`
+
+快捷鍵 command + shift + T   ( Open Type )
+
+`web.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd" version="3.1">
+  <display-name>work</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+  </welcome-file-list>
+  
+  <!-- 可以讓 spring容器 隨項目的啟動而創建，隨項目的關閉而銷毀 -->
+  <listener>
+  	<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+  
+  <!-- 指定加載 spring配置文件的位置 -->
+  <context-param>
+  	<param-name>contextConfigLocation</param-name>
+  	<param-value>classpath:applicationContext.xml</param-value>
+  </context-param>
+  
+</web-app>
+```
+
+<br>
+
+重新修改 `CustomerAction.java`
+
+```java
+public class CustomerAction extends ActionSupport implements MidelDriven<Customer>
+{
+	// private CustomerService cs = new CustomerServiceImpl();
+	private CustomerAction customer = new Customer();
+
+	public String list() throws Exception
+	{
+		// 獲得 spring容器 => 從 Application域 獲得即可
+
+		// 1.獲得 servletContext對象
+		ServletContext sc = ServletActionContext.getServletContext();
+
+		// 2.從 sc中 獲得 ac容器
+		WebApplicationContext ac = WebApplicationContextUtils.getWebApplicationContext(sc);
+
+		// 3.從容器中獲得 CustomerService
+		CustomerService cs = (CustomerService) ac.getBean("customerService");
+
+		// -------------------------------------------------------------------------------
+
+		// 1.接收參數
+		String cust_name = ServletActionContext.getRequest().getParameter("cust_name");
+
+		// 2.創建離線查詢對象
+		DetachedCriteria dc = DetachedCriteria.forClass(Customer.class);
+
+		// 3.判斷餐數拼裝條件
+		if (StringUtils.isNotBlank(cust_name))
+		{
+			dc.add(Restrictions.like("cust_name", "%" + cust_name + "%"));
+		}
+
+		// 4.調用 Service 將離線對象傳遞
+		List<Customer> list = cs.getAll(dc);
+
+		// 5.將返回的 list 放入 request域，轉發到 list.jsp顯示
+		ServletActionContext.getRequest().setAttribute("list", list);
+
+		// 放到 ActionContext
+		ActionContext.getContext().put("list", list);
+
+		return "list";
+	}
+
+	// 添加客戶
+	public String add() throws Exception
+	{
+		// 獲得 spring容器 => 從 Application域 獲得即可
+
+		// 1.獲得 servletContext對象
+		ServletContext sc = ServletActionContext.getServletContext();
+
+		// 2.從 sc中 獲得 ac容器
+		WebApplicationContext ac = WebApplicationContextUtils.getWebApplicationContext(sc);
+
+		// 3.從容器中獲得 CustomerService
+		CustomerService cs = (CustomerService) ac.getBean("customerService");
+
+		// -------------------------------------------------------------------------------
+
+		// 1.調用 Service
+		cs.save(customer);
+
+		// 2.重定向到列表 action方法
+		return "toList";
+	}
+
+	public Customer getModel()
+	{
+		return customer;
+	}
+```
+
+<br>
