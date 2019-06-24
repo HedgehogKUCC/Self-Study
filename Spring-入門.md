@@ -193,15 +193,11 @@ public class Demo
 
 <br>
 
-### Bean元素進階
+## Bean元素進階
 
 <br>
 
-`scope屬性`
-
-<br>
-
-singleton ( 預設值 )
+### scope屬性: singleton ( 預設值 )
 
 	單例對象，被標示為單例的對象在spring容器中只會存在一個實例
 	
@@ -245,7 +241,7 @@ singleton ( 預設值 )
 
 <br>
 
-prototype
+### scope屬性: prototype
 
 	多例原型
 	被標識為多例的對象，每次再獲得才會創建，每次創建都是新的對象。
@@ -287,13 +283,13 @@ prototype
 
 <br>
 
-request
+### scope屬性: request
 
 	web環境下，對象與request生命週期一樣。
 	
 <br>
 
-session
+### scope屬性: session
 
 	web環境下，對象與session生命週期一樣。
 
@@ -527,14 +523,515 @@ public User createUser2()
 
 <br>
 
+## spring 屬性注入
+
+/src New Package `com.spring.c_injection`
+
+-- Package下 --
+
+New XML File `applicationContext.xml`
+
+New Class `Demo.java`
+
+<br>
+
+### 注入方式: set方法注入
+
+`User.java`
+
+```java
+@Override
+	public String toString()
+	{
+		return "User [name=" + name + ", age=" + age + "]";
+	}
+```
+
+<br>
+
+`applicationContex.xml`
+
+```xml
+<!-- set方式注入: -->
+  <bean name="user" class="com.spring.bean.User">
+  	
+  	<!-- 值類型注入: 為User對象中名為 name的屬性注入 Tom作為值 -->
+  	<property name="name" value="Tom"></property>
+  	<property name="age" value="18"></property>
+  	
+  </bean>
+```
+
+<br>
+
+`Demo.java`
+
+```java
+package com.spring.c_injection;
 
 
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.spring.bean.User;
+
+public class Demo
+{
+	@Test
+	public void fun1()
+	{
+		//1.創建容器對象
+		ApplicationContext ac = new ClassPathXmlApplicationContext("com/spring/c_injection/applicationContext.xml");
+		
+		//2.向容器 "要" user對象
+		User user = (User) ac.getBean("user");
+		
+		//3.打印 user對象
+		System.out.println(user);
+	}
+}
+```
+
+<br>
+
+在 `com.spring.bean` New Class
+
+`Car.java`
+
+```java
+package com.spring.bean;
+
+public class Car
+{
+	private String name;
+	private String color;
+	
+	public String getName()
+	{
+		return name;
+	}
+	public void setName(String name)
+	{
+		this.name = name;
+	}
+	public String getColor()
+	{
+		return color;
+	}
+	public void setColor(String color)
+	{
+		this.color = color;
+	}
+	@Override
+	public String toString()
+	{
+		return "Car [name=" + name + ", color=" + color + "]";
+	}
+}
+```
+
+<br>
+
+`User.java`
+
+```java
+public class User
+{
+	private String name;
+	private Integer age;
+	private Car car;
+	
+	setters/getters
+	
+	@Override
+	public String toString()
+	{
+		return "User [name=" + name + ", age=" + age + ", car=" + car + "]";
+	}
+```
+
+<br>
+
+`applicationContex.xml`
+
+```xml
+<!-- set方式注入: -->
+  <bean name="user" class="com.spring.bean.User">
+  	
+  	<!-- 值類型注入: 為User對象中名為 name的屬性注入 Tom作為值 -->
+  	<property name="name" value="Tom"></property>
+  	<property name="age" value="18"></property>
+  	
+  	<!-- 引用類型注入: 為car屬性注入下方配置的car對象 -->
+  	<property name="car" ref="car"></property>
+  	
+  </bean>
+  
+  <!-- 將 car對象配置到容器中 -->
+  <bean name="car" class="com.spring.bean.Car">
+  	<property name="name" value="藍寶基尼"></property>
+  	<property name="color" value="黃色"></property>
+  </bean>
+```
+
+<br>
+
+`Demo.java`
+
+```java
+@Test
+	public void fun1()
+	{
+		//1.創建容器對象
+		ApplicationContext ac = new ClassPathXmlApplicationContext("com/spring/c_injection/applicationContext.xml");
+		
+		//2.向容器 "要" user對象
+		User user = (User) ac.getBean("user");
+		
+		//3.打印 user對象
+		System.out.println(user);
+	}
+```
+
+<br>
+
+### 注入方式: 構造函數方法注入
+
+`User.java`
+
+```java
+    public User(String name, Car car)
+	{
+		this.name = name;
+		this.car = car;
+		System.out.println("User(String name, Car car)!!!");
+	}
+```
+
+<br>
+
+`applicationContex.xml`
+
+```xml
+<!-- 構造函數注入 -->
+  <bean name="user2" class="com.spring.bean.User">
+  
+  	<constructor-arg name="name" value="Jerry"></constructor-arg>
+  	<constructor-arg name="car" ref="car"></constructor-arg>
+  	
+  </bean>
+```
+
+<br>
+
+`Demo.java`
+
+```java
+@Test
+	public void fun2()
+	{
+		// 1.創建容器對象
+		ApplicationContext ac = new ClassPathXmlApplicationContext("com/spring/c_injection/applicationContext.xml");
+
+		// 2.向容器 "要" user對象
+		User user = (User) ac.getBean("user2");
+
+		// 3.打印 user對象
+		System.out.println(user);
+	}
+```
+
+<br>
+
+假如： 建構式 overload ( 多載 )
+
+`User.java`
+
+```java
+    public User(String name, Car car)
+	{
+		this.name = name;
+		this.car = car;
+		System.out.println("User(String name, Car car)!!!");
+	}
+	
+	public User(Car car, String name)
+	{
+		this.car = car;
+		this.name = name;
+		System.out.println("User(Car car, String name)!!!");
+	}
+```
+
+<br>
+
+### index屬性
+
+`applicationContex.xml`
+
+```xml
+<!-- 構造函數注入 -->
+  <bean name="user2" class="com.spring.bean.User">
+
+  	<constructor-arg name="name" value="Jerry" index="0"></constructor-arg>
+  	<constructor-arg name="car" ref="car" index="1"></constructor-arg>
+  	
+  </bean>
+```
+
+<br>
+
+`Demo.java`
+
+```java
+@Test
+	public void fun2()
+	{
+		// 1.創建容器對象
+		ApplicationContext ac = new ClassPathXmlApplicationContext("com/spring/c_injection/applicationContext.xml");
+
+		// 2.向容器 "要" user對象
+		User user = (User) ac.getBean("user2");
+
+		// 3.打印 user對象
+		System.out.println(user);
+	}
+```
+
+<br>
+
+又假如 類型不同
+
+`User.java`
+
+```java
+   public User(String name, Car car)
+	{
+		this.name = name;
+		this.car = car;
+		System.out.println("User(String name, Car car)!!!");
+	}
+	
+	public User(Integer name, Car car)
+	{
+		this.name = name+"";
+		this.car = car;
+		System.out.println("User(Integer name, Car car)!!!");
+	}
+```
+
+<br>
+
+`applicationContext.xml`
+
+```xml
+<!-- 構造函數注入 -->
+  <bean name="user2" class="com.spring.bean.User">
+  
+  	<!-- name屬性: 構造函數的參數名 -->
+  	<!-- index屬性: 構造函數的參數索引 -->
+  	<!-- type屬性: 構造函數的參數類型 -->
+  	<constructor-arg name="name" value="999" index="0" type="java.lang.Integer"></constructor-arg>
+  	<constructor-arg name="car" ref="car" index="1"></constructor-arg>
+  </bean>
+```
+
+<br>
+
+### 注入方式: p名稱空間注入
+
+`applicationContext.xml`
+
+```xml
+   <!-- 
+		p名稱空間注入 ，走 set方法
+		1.導入p名稱空間 xmlns:p="http://www.springframework.org/schema/p"
+		2.使用 p:屬性 完成注入
+				|-值類型: p:屬性名="值"
+				|-對象類型: p:屬性名-ref="bean名稱"
+	-->
+	<bean name="user3" class="com.spring.bean.User" 
+		  p:name="jack" p:age="20" p:car-ref="car">
+	</bean>
+```
+
+<br>
+
+`Demo.java`
+
+```java
+@Test
+	public void fun3()
+	{
+		// 1.創建容器對象
+		ApplicationContext ac = new ClassPathXmlApplicationContext("com/spring/c_injection/applicationContext.xml");
+
+		// 2.向容器 "要" user對象
+		User user = (User) ac.getBean("user3");
+
+		// 3.打印 user對象
+		System.out.println(user);
+	}
+```
+
+<br>
+
+### 注入方式: spel 注入
+
+`applicationContext.xml`
+
+```xml
+   <!-- 
+		spel注入: spring Expression Language spring表達式語言 
+	-->
+	<bean name="user4" class="com.spring.bean.User">
+		<property name="name" value="#{user.name}"></property>
+		<property name="age" value="#{user3.age}"></property>
+		<property name="car" ref="car"></property>
+	</bean>
+```
+
+<br>
+
+## 複雜類型注入
+
+`com.spring.c_injection` New Class `CollectionBean.java`
+
+```java
+public class CollectionBean
+{
+	private Object[] arr;  		// 數組類型注入
+	private List list;	   		// List/set 類型注入
+	private Map map;	   		// map類型注入
+	private Properties prop;	// properties類型注入
+	
+	setters/getters
+	
+	@Override
+	public String toString()
+	{
+		return "CollectionBean [arr=" + Arrays.toString(arr) + ", list=" + list + ", map=" + map + ", prop=" + prop
+				+ "]";
+	}
+```
+
+<br>
+
+`applicationContext.xml`
+
+```xml
+<!-- 複雜類型注入 -->
+	
+	<!-- array注入 -->
+	<bean name="cb" class="com.spring.c_injection.CollectionBean">
+	
+		<!--  如果 "數組" 中只準備注入一個值(對象)，直接使用value|ref即可 -->
+		<property name="arr" value="Tom"></property>
+		
+	</bean>
+```
+
+<br>
+
+`Demo.java`
+
+```java
+@Test
+	public void fun5()
+	{
+		// 1.創建容器對象
+		ApplicationContext ac = new ClassPathXmlApplicationContext("com/spring/c_injection/applicationContext.xml");
+
+		// 2.向容器 "要" user對象
+		 CollectionBean cb = (CollectionBean) ac.getBean("cb");
+
+		// 3.打印 user對象
+		System.out.println(cb);
+	}
+```
+
+<br>
 
 
+### 複雜類型注入: 數組
 
+`applicationContext.xml`
 
+```xml
+<!-- 複雜類型注入 -->
+	
+	<!-- array注入 -->
+	<bean name="cb" class="com.spring.c_injection.CollectionBean">
+	
+		<!-- 如果數組中只準備注入一個值(對象)，直接使用value|ref即可 
+		<property name="arr" value="Tom"></property>
+		-->
+		
+		<!-- array注入，多個元素注入 -->
+		<property name="arr">
+			<array>
+				<value>Tom</value>
+				<value>Jerry</value>
+				<ref bean="user4" />
+			</array>
+		</property>
+	
+	</bean>
+```
 
+<br>
 
+### 複雜類型注入: List
 
+`applicationContext.xml`
 
+```xml
+      <!-- 如果 "List" 中只準備注入一個值(對象)，直接使用value|ref即可 
+		<property name="list" value="Jack"></property>
+		-->
+		
+		<property name="list">
+			<list>
+				<value>Jack</value>
+				<value>Rose</value>
+				<ref bean="user3" />
+			</list>
+		</property>
+```
 
+<br>
+
+### 複雜類型注入: Map
+
+`applicationContext.xml`
+
+```xml
+      <!-- map類型注入 -->
+		<property name="map">
+			<map>
+				<entry key="url" value="jdbc:mysql://localhost:3306/schema"></entry>
+				<entry key="user" value-ref="user4"></entry>
+				<entry key-ref="user3" value-ref="user2"></entry>
+			</map>
+		</property>
+```
+
+<br>
+
+### 複雜類型注入: Properties
+
+`applicationContext.xml`
+
+```xml
+       <!-- properties類型注入 -->
+		<property name="prop">
+			<props>
+				<prop key="driverClass">com.jdbc.mysql.Driver</prop>
+				<prop key="userName">root</prop>
+				<prop key="password">1234567</prop>
+			</props>
+		</property>
+```
+
+<br>
