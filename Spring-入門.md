@@ -1,6 +1,6 @@
 ### 環境建置
 
-![SpringFrameWorkRuntime]()
+![SpringFrameWorkRuntime](https://github.com/HedgehogKUCC/Self-Study/blob/master/SpringFrameworkRuntime.png)
 
 <br>
 
